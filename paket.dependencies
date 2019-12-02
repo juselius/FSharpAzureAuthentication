@@ -1,0 +1,35 @@
+group Server
+    source https://api.nuget.org/v3/index.json
+    framework: netcoreapp3.0
+    storage: none
+
+    nuget FSharp.Core
+    nuget FSharp.Data
+    nuget Microsoft.AspNetCore
+    nuget Microsoft.AspNetCore.HttpsPolicy
+    nuget Microsoft.AspNetCore.Authentication
+    nuget Microsoft.AspNetCore.Authentication.Cookies
+    nuget Microsoft.AspNetCore.Authentication.OpenIdConnect
+    nuget Microsoft.AspNetCore.Identity
+    nuget Microsoft.AspNetCore.Cors
+    nuget Microsoft.AspNetCore.Authentication.AzureAD.UI
+    nuget Microsoft.Extensions.Configuration
+    nuget Microsoft.Extensions.Configuration.Binder
+    nuget Microsoft.Extensions.Configuration.Json
+    nuget Microsoft.Identity.Client
+    nuget Microsoft.Graph
+    nuget Giraffe
+    nuget Thoth.Json.Giraffe
+    nuget Novell.Directory.Ldap.NETStandard
+
+group Build
+    source https://api.nuget.org/v3/index.json
+    framework: netstandard2.0
+    storage: none
+
+    nuget FSharp.Core
+    nuget Fake.Core.ReleaseNotes
+    nuget Fake.Core.Target
+    nuget Fake.DotNet.Cli
+    nuget Fake.IO.FileSystem
+

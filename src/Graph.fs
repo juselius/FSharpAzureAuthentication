@@ -1,6 +1,5 @@
 module Graph
 
-open System.Globalization
 open System.Net.Http
 open System.Net.Http.Headers
 open System.Threading.Tasks
@@ -11,10 +10,7 @@ open Microsoft.Identity.Client
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 open FSharp.Control.Tasks.V2
-open Microsoft.Graph
 open AzureAdOptions
-open Microsoft.Graph
-open Microsoft.Extensions.Primitives
 
 type Uri = System.Uri
 type StringSplitOptions = System.StringSplitOptions
@@ -125,44 +121,8 @@ let graphAuthProvider
         // requestMessage.Headers.Add("SampleID", "aspnetcore-connect-sample")
     }
 
-type IGraphSdkHelper =
-    abstract member GetAuthenticatedClient : ClaimsIdentity -> GraphServiceClient
-
-type GraphSdkHelper (authProvider : IGraphAuthProvider) =
-    let _authProvider = authProvider
-
-    let authProvider (userIdentity : ClaimsIdentity) (requestMessage : HttpRequestMessage) =
-        graphAuthProvider _authProvider userIdentity requestMessage :> Task
-
-    // Get an authenticated Microsoft Graph Service client.
-    let getAuthenticatedClient (userIdentity : ClaimsIdentity) =
-        GraphServiceClient(
-            DelegateAuthenticationProvider(fun req ->
-                authProvider userIdentity req
-            )
-        )
-
-    interface IGraphSdkHelper with
-        member this.GetAuthenticatedClient (userIdentity : ClaimsIdentity) =
-            getAuthenticatedClient userIdentity
-
 let graphUrl x = "https://graph.microsoft.com/v1.0/" + x
 
 let inline graphUrlf (fmt : Printf.StringFormat<_, _>) =
     let f =  Printf.StringFormat<_, _>("https://graph.microsoft.com/v1.0/" + fmt.Value)
     sprintf f
-
-
-// using GraphSdkHelper:
-// let graphSdk = ctx.RequestServices.GetService<IGraphSdkHelper>()
-// let graphClient = graphSdk.GetAuthenticatedClient(cid)
-// let uid = ctx.User.FindFirst "preferred_username"
-// let! r = graphClient.Users.[uid.Value].Request().GetAsync()
-// let e = Newtonsoft.Json.JsonConvert.SerializeObject r
-// printfn "sdk: %A" e
-
-// let getUserJson (graphClient : GraphServiceClient) (email : string) (ctx : HttpContext) =
-//     try
-//         let user = await graphClient.Users[email].Request().GetAsync();
-//         JsonConvert.SerializeObject(user, Formatting.Indented);
-//     with e -> e.Message

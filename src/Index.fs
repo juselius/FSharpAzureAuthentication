@@ -2,11 +2,11 @@ module Program.Index
 
 open Giraffe.GiraffeViewEngine
 
-let private page content = 
-    let header = 
+let private page content =
+    let header =
         head [] [
-            title [] [ encodedText "EventCalendar" ]
             meta [ _charset "utf-8" ]
+            title [] [ encodedText "AzureAd Authentication" ]
             meta [
                 _name "viewport"
                 _content "width=device-width, initial-scale=1"
@@ -24,23 +24,29 @@ let private page content =
                 _href "https://fonts.googleapis.com/css?family=Open+Sans"
             ]
         ]
+    let trunk =
+        body [] [
+            div [ _id "elmish-app"; _class "container" ] [
+                div [ _class "section" ] [
+                    content
+                ]
+            ]
+        ]
     html [] [
         header
-        body [ _style "padding: 100px;" ] [
-            div [ _id "elmish-app" ] [ content ]
-            script [ _src "/vendors.js" ] []
-            script [ _src "/app.js" ] []
-        ]
-]
+        trunk
+    ]
 
 let indexView userInfo =
-    let content = 
+    let content =
         div [] [
-            h1 [] [ str "AzureAd test" ]
-            h2 [] [ str ("User: " + userInfo) ] 
-            ol [] [
-                li [] [ a [ _href "/signin" ] [ str "login" ] ]
-                li [] [ a [ _href "/signout" ] [ str "logout" ] ]
+            h1 [ _class "title is-3" ] [ str "AzureAd test" ]
+            div [ _class "box" ] [
+                h2 [ _class "title is-5" ] [ str ("User: " + userInfo) ]
+                ol [] [
+                    li [] [ a [ _href "/signin" ] [ str "Login" ] ]
+                    li [] [ a [ _href "/signout" ] [ str "Logout" ] ]
+                ]
             ]
         ]
     page content

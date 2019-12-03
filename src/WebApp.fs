@@ -14,33 +14,21 @@ open FSharp.Control.Tasks.V2
 open FSharp.Data
 open Thoth.Json.Net
 
-let oidChallenge = challenge OpenIdConnectDefaults.AuthenticationScheme
-
-let authorize : HttpHandler = requiresAuthentication oidChallenge
-
-let authorized (next : HttpFunc) (ctx : HttpContext) =
-    if ctx.User.Identity.IsAuthenticated then
-        next ctx
-    else
-        json "not authorized" next ctx
+let authenticate : HttpHandler =
+    challenge OpenIdConnectDefaults.AuthenticationScheme
+    |> requiresAuthentication
 
 let signIn (next : HttpFunc) (ctx : HttpContext) =
     printfn "signin: %A" (ctx.User.Identity.Name, ctx.User.Identity.IsAuthenticated)
-    authorize next ctx
+    authenticate next ctx
 
 let signOut (next : HttpFunc) (ctx : HttpContext) =
-        task {
-            do! ctx.SignOutAsync()
-            return! next ctx
-        }
+    task {
+        do! ctx.SignOutAsync()
+        return! next ctx
+    }
 
-let signedOut (next : HttpFunc) (ctx : HttpContext) =
-    if ctx.User.Identity.IsAuthenticated then
-        next ctx
-    else
-        next ctx
-
-let private azureUser (ctx : HttpContext) =
+let private getAzureUser (ctx : HttpContext) =
     let name = ctx.User.Identity.Name
     let emailDecoder =
         Decode.field "value" (Decode.list (Decode.field "mail" Decode.string))
@@ -65,22 +53,21 @@ let private azureUser (ctx : HttpContext) =
 
 let getUser (next : HttpFunc) (ctx : HttpContext) =
     task {
-        let! name, email = azureUser ctx
+        let! name, email = getAzureUser ctx
         return! json (name, email) next ctx
     }
 
-let indexHtml (next : HttpFunc) (ctx : HttpContext) = 
+let indexHtml (next : HttpFunc) (ctx : HttpContext) =
     task {
-        let! name, email = azureUser ctx
+        let! name, email = getAzureUser ctx
         let usr = sprintf "%s <%s>" name email
         return! htmlView (Index.indexView usr) next ctx
     }
 
 let webApp (next : HttpFunc) (ctx : HttpContext) =
-    let pb = ctx.Request.PathBase
     choose [
         routex "(/?)" >=> indexHtml
-        route "/signin" >=> signIn >=> redirectTo false (pb + "/?signin")
-        route "/signout" >=> signOut >=> redirectTo false (pb + "/?signout")
+        route "/signin" >=> signIn >=> redirectTo false "/?signin"
+        route "/signout" >=> signOut >=> redirectTo false "/?signout"
         route "/api/me" >=> getUser
     ] next ctx

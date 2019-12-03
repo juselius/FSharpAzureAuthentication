@@ -10,7 +10,6 @@ open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.OpenIdConnect
 open Microsoft.AspNetCore.HttpsPolicy
 open Microsoft.AspNetCore.Authentication.Cookies
-open Microsoft.Extensions.Logging
 open Microsoft.Extensions.Configuration
 open FSharp.Core
 open Giraffe
@@ -18,31 +17,22 @@ open Graph
 open AzureAd
 open Program
 
+type IJsonSerializer = Giraffe.Serialization.Json.IJsonSerializer
+
 let tryGetEnv = Environment.GetEnvironmentVariable >> function null | "" -> None | x -> Some x
 let publicPath = IO.Path.GetFullPath "."
 let port = "SERVER_PORT" |> tryGetEnv |> Option.map uint16 |> Option.defaultValue 8085us
-
-let errorHandler (ex : Exception) (logger : ILogger) =
-    logger.LogError(EventId(), ex, "An unhandled exception has occurred while executing the request.")
-    clearResponse >=> setStatusCode 500 >=> text ex.Message
-
-let configureLogging (builder : ILoggingBuilder) =
-    let filter (l : LogLevel) = l.Equals LogLevel.Error
-    builder.AddFilter(filter).AddConsole().AddDebug() |> ignore
-
-let configureCors (builder : CorsPolicyBuilder) =
-    builder.WithOrigins([|
-            "https://login.microsoftonline.com"
-            "*"
-        |])
-       .AllowAnyMethod()
-       .AllowAnyHeader()
-       |> ignore
 
 let appSettings (ctx : WebHostBuilderContext) (config : IConfigurationBuilder) =
     config
         .AddJsonFile("appsettings.json", false, true)
         .AddEnvironmentVariables() |> ignore
+
+let configureCors (builder : CorsPolicyBuilder) =
+    builder.WithOrigins([| "https://login.microsoftonline.com" |])
+       .AllowAnyMethod()
+       .AllowAnyHeader()
+       |> ignore
 
 let cookiePolicyOptions (opt : CookiePolicyOptions) =
         opt.CheckConsentNeeded <- fun _ -> true
@@ -62,12 +52,6 @@ let staticFileOptions =
     opt
 
 let configureApp (app : IApplicationBuilder) =
-    let env = app.ApplicationServices.GetService<IWebHostEnvironment>()
-    match env.EnvironmentName  with
-    | "Production" -> app.UseGiraffeErrorHandler errorHandler
-    | _  -> app.UseDeveloperExceptionPage()
-    |> ignore
-    printfn "Webroot path: %s" publicPath
     app.UseDefaultFiles()
         .UseHttpsRedirection()
         .UsePathBase(PathString "/")
@@ -77,8 +61,6 @@ let configureApp (app : IApplicationBuilder) =
         .UseAuthentication()
         .UseSession()
         .UseGiraffe WebApp.webApp
-
-type IJsonSerializer = Giraffe.Serialization.Json.IJsonSerializer
 
 let configureServices (services : IServiceCollection) =
     let sp  = services.BuildServiceProvider()
@@ -90,7 +72,6 @@ let configureServices (services : IServiceCollection) =
     services.Configure(hstsOptions) |> ignore
     services.AddCors() |> ignore
     services.AddSingleton<IGraphAuthProvider, GraphAuthProvider>() |> ignore
-    services.AddTransient<IGraphSdkHelper, GraphSdkHelper>() |> ignore
     services.AddResponseCaching() |> ignore
     services.AddDistributedMemoryCache() |> ignore
     services.AddSession() |> ignore
@@ -107,6 +88,5 @@ WebHost
     .ConfigureServices(configureServices)
     .UseWebRoot(publicPath)
     .UseUrls("https://0.0.0.0:" + port.ToString() + "/")
-    .ConfigureLogging(configureLogging)
     .Build()
     .Run()
